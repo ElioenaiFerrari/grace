@@ -79,23 +79,15 @@
       },
       beforeMount() {
         this.ws.onmessage = (event) => {
-          const [data] = JSON.parse(event.data);
-          const chunk = data.delta.content;
-          const finishReason = data.finish_reason;
+          const data = JSON.parse(event.data);
 
-          if (chunk) {
-            const isAssistantMessage = this.messages.length % 2 === 0;
-            if (!isAssistantMessage)
-              this.messages.push({
-                content: chunk,
-                role: 'assistant',
-              });
-            else {
-              const messageIndex = this.messages.length - 1;
-              this.messages[messageIndex].content += chunk;
-              this.$forceUpdate();
-            }
-          }
+          console.log(data);
+          const content = data.content;
+
+          this.messages.push({
+            content,
+            role: 'assistant',
+          });
         };
       },
       methods: {

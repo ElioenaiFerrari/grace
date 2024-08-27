@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"os"
 
 	"github.com/ElioenaiFerrari/grace/internal/pipeline"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/websocket/v2"
 	"github.com/joho/godotenv"
 )
 
@@ -31,18 +33,31 @@ func main() {
 	room.AddConnection(productManager, developer)
 	room.AddConnection(developer, productManager)
 
-	ch, err := room.Run(ctx)
-	if err != nil {
-		panic(err)
-	}
+	room.Print()
 
-	f, err := os.Create("trace.out")
-	if err != nil {
-		panic(err)
-	}
+	app := fiber.New()
 
-	for message := range ch {
-		f.WriteString(message.Content + "\n")
-		fmt.Println(message.Content)
-	}
+	app.Use("/ws", func(c *fiber.Ctx) error {
+		if websocket.IsWebSocketUpgrade(c) {
+			return c.Next()
+		}
+
+		return c.SendStatus(fiber.StatusUpgradeRequired)
+	})
+
+	app.Get("/ws/:id", websocket.New(func(c *websocket.Conn) {
+		log.Println("connected", c.Params("id"))
+		ch, err := room.Run(ctx)
+		if err != nil {
+			panic(err)
+		}
+
+		for message := range ch {
+			if err := c.WriteJSON(message); err != nil {
+				return
+			}
+		}
+	}))
+
+	app.Listen(":4000")
 }

@@ -45,7 +45,7 @@ func (a *Agent) ChatCompletion(ctx context.Context, messages []openai.ChatComple
 
 	req := openai.ChatCompletionRequest{
 		Model:     openai.GPT4oMini,
-		MaxTokens: 30,
+		MaxTokens: 100,
 		Messages:  messages,
 	}
 

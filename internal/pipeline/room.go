@@ -2,111 +2,65 @@ package pipeline
 
 import (
 	"context"
-	"fmt"
 	"log"
-	"time"
 
 	"github.com/sashabaranov/go-openai"
 )
 
-type UndirectedGraph struct {
-	connections map[string][]string
-}
-
-func NewUndirectedGraph() *UndirectedGraph {
-	return &UndirectedGraph{
-		connections: map[string][]string{},
-	}
-}
-
-func (g *UndirectedGraph) AddConnection(from, to string) {
-	g.connections[from] = append(g.connections[from], to)
-	g.connections[to] = append(g.connections[to], from)
-}
-
-func (g *UndirectedGraph) ConversationBFS(ctx context.Context, agents map[string]AgentBehavior) (chan *openai.ChatCompletionMessage, error) {
-	ch := make(chan *openai.ChatCompletionMessage)
-
-	go func() {
-		messages := []openai.ChatCompletionMessage{
-			{
-				Role:    openai.ChatMessageRoleUser,
-				Content: "Olá tudo bem? Se apresentem e digam o que fazem e o precisam. As mensagens devem ser seguidas de <Profissão>: <Mensagem>",
-			},
-		}
-		for {
-			fmt.Printf("Running conversation, %d\n", len(messages))
-			visited := map[string]bool{}
-			queue := []string{}
-
-			for id := range agents {
-				queue = append(queue, id)
-				visited[id] = true
-			}
-
-			for len(queue) > 0 {
-				id := queue[0]
-				queue = queue[1:]
-
-				agent := agents[id]
-				message, err := agent.ChatCompletion(ctx, messages)
-				if err != nil {
-					log.Printf("failed to chat completion: %s", err)
-					continue
-				}
-
-				messages = append(messages, *message)
-				ch <- message
-
-				for _, to := range g.connections[id] {
-					if visited[to] {
-						continue
-					}
-
-					queue = append(queue, to)
-					visited[to] = true
-				}
-			}
-
-			time.Sleep(1 * time.Second)
-		}
-	}()
-
-	return ch, nil
-}
-
 type Room struct {
-	agents      []AgentBehavior
-	connections *UndirectedGraph
+	connections *Graph
 }
 
 func NewRoom() *Room {
 	return &Room{
-		agents:      []AgentBehavior{},
-		connections: NewUndirectedGraph(),
+		connections: NewGraph(Undirected),
 	}
 }
 
 func (r *Room) AddConnection(from, to AgentBehavior) {
-	r.agents = append(r.agents, from)
-	r.connections.AddConnection(from.ID(), to.ID())
+	r.connections.AddEdge(Edge{
+		From:      from.ID(),
+		To:        to.ID(),
+		FromAgent: from,
+		ToAgent:   to,
+	})
+
+	log.Println("added connection", from.Name(), "to", to.Name())
 }
 
-func (r *Room) findAgentByID(id string) AgentBehavior {
-	for _, agent := range r.agents {
-		if agent.ID() == id {
-			return agent
-		}
-	}
-
-	return nil
+func (r *Room) Print() {
+	r.connections.Print()
 }
 
 func (r *Room) Run(ctx context.Context) (chan *openai.ChatCompletionMessage, error) {
-	agents := map[string]AgentBehavior{}
-	for _, agent := range r.agents {
-		agents[agent.ID()] = agent
-	}
+	ch := make(chan *openai.ChatCompletionMessage)
 
-	return r.connections.ConversationBFS(ctx, agents)
+	go func() {
+		log.Println("running room")
+		defer close(ch)
+
+		messages := []openai.ChatCompletionMessage{
+			{
+				Role:    openai.ChatMessageRoleSystem,
+				Content: "Olá, se apresentem e conversem sobre o projeto. O projeto será um jogo de cobrinha em Rust.",
+			},
+		}
+
+		for {
+			for _, node := range r.connections.Nodes {
+				agent := node.Agent
+
+				message, err := agent.ChatCompletion(ctx, messages)
+				if err != nil {
+					log.Println("failed to chat completion", err)
+					return
+				}
+
+				ch <- message
+				messages = append(messages, *message)
+			}
+		}
+	}()
+
+	return ch, nil
 }

@@ -1,42 +1,37 @@
-Gerente de Produto: Olá! Eu sou o gerente de produto, responsável por definir a visão e estratégia do produto, entender as necessidades dos clientes
-Desenvolvedor: Olá! Sou o desenvolvedor, encarregado de implementar as funcionalidades do projeto e escrever o código. Preciso de uma especific
-Gamers: Olá! Somos os gamers, sempre em busca de novas experiências de jogo. Procuramos jogos interessantes e desafiadores para nos divertir
-Designer: Olá! Sou o designer, encarregado de criar a aparência e a interface do jogo. Preciso de feedback sobre a usabilidade e
-Marketing: Olá! Sou da equipe de marketing, responsável por promover o produto e atrair usuários. Preciso de informações sobre o público-alvo
-Tester: Olá! Sou o tester, responsável por garantir que o produto funcione corretamente e sem bugs. Preciso de acesso às builds mais recentes
-Desenvolvedor: Olá! Como mencionei antes, estou aqui para desenvolver um jogo de cobrinha em Golang. Para começar, precis
-Gerente de Produto: Ótimo! Como gerente de produto, vou trabalhar para garantir que todos os requisitos sejam atendidos. Precisamos definir quais
-Designer: Perfeito! Para complementar, posso trabalhar nas telas do jogo e na arte visual. Precisamos definir a estética que vamos seguir. Alguma
-Tesher: Concordo com o designer! Precisamos uma definição clara do que queremos para que não haja retrabalho depois. Além disso, é importante
-Marketing: Excelente! Para o nosso trabalho, seria bom entender o diferencial do jogo, assim conseguimos planejar campanhas de divulgação adequadas e atraentes.
-Desenvolvedor: Com certeza! Podemos começar definindo as mecânicas do jogo, como controle da cobrinha, obstáculos e pontos. Alguma
-Gerente de Produto: Excelente ponto! Vamos definir as mecânicas principais: a cobrinha deve se mover em uma grade, coletar comida para
-Designer: Isso mesmo! Vou criar um layout inicial para a interface do jogo, incluindo a área de jogo, os elementos visuais da cobrinha e
-Tester: Ótimo! Lembrem-se de que precisamos de uma abordagem clara para os testes. Assim que tivermos um protótipo,
-Marketing: E não se esqueçam de pensar em como vamos criar expectativa antes do lançamento. Campanhas de pré-lançamento podem gerar muito interesse!
-Desenvolvedor: Perfeito! Então, aqui está um esboço inicial do código em Golang para o jogo de cobrinha. Vamos usar
-Gerente de Produto: Ótimo, desenvolvedor! Por favor, compartilhe o esboço inicial com todos, assim todos podem entender a
-Desenvolvedor: Claro! Aqui está um exemplo básico do código que pode ser usado como um ponto de partida para o jogo de cobrinha em Gol
-Tester: Ótimo, assim que tivermos o código, posso começar a planejar os testes a serem feitos. Precisamos ter em mente os
-Designer: Muito bem! Enquanto isso, posso trabalhar nos elementos visuais e layout, aguardo a estrutura do jogo para ter uma ideia melhor de como
-Desenvolvedor: Aqui está um exemplo simples de como poderia ser o código para o jogo da cobrinha em Golang usando a biblioteca `termb
-Gerente de Produto: Excelente trabalho, desenvolvedor! Vamos começar a revisar esse código em grupo. O uso da biblioteca `termbox-go`
-Tester: Assim que a revisão do código estiver feita, posso preparar um conjunto de testes para garantir que a mecânica do jogo funcione corretamente desde o
-Marketing: Enquanto isso, posso começar a trabalhar em um nome atraente para o jogo e uma estratégia de branding. Preciso de algumas ideias de temas
-Designer: Ótimo! Para a identidade visual, trabalhar com um estilo pixelado pode ser interessante, lembrando os jogos clássicos. Que tal
-Desenvolvedor: Ótima ideia, designer! Vamos manter o tema simples e nostálgico. O código pode ter referências visuais que
-Tester: Certíssimo! Quanto mais nos apegarmos à nostalgia, mais atraente o jogo pode se tornar para um público mais amplo. Após a
-Gerente de Produto: Excelente ponto! Vamos garantir que todos os elementos planejados trabalhem juntos para criar uma experiência envolvente. Agora, vamos fazer
-Desenvolvedor: Concordo! Também podemos incluir um sistema de pontuação e níveis de dificuldade. Vou implementar isso no código e compartilhar com todos.
-Tester: Ótimo! Assim que tivermos essas funcionalidades, pode ser interessante realizar testes com usuários para entender como eles interagem com o jogo.
-Marketing: Excelente ideia! Podemos organizar uma sessão de jogo com um grupo seleto de usuários para obter feedback antes do lançamento. Isso pode nos ajudar a
-Designer: Para essa sessão de jogo, posso preparar alguns visuais e materiais de apresentação para garantir que a experiência seja atraente. Alguma sugestão
-Gerente de Produto: Isso soa ótimo! Vamos garantir que a sessão de jogo seja bem estruturada, com um formulário de feedback para coletar as
-Desenvolvedor: Perfeito! Assim que terminarmos a implementação inicial, podemos marcar essa sessão e observar como os jogadores interagem com o jogo.
-Tester: Com certeza! Certificarei-me de que tudo esteja estável e funcionando corretamente antes da sessão, para que a experiência seja a melhor possível
-Marketing: E enquanto isso, posso começar a criar um teaser para gerar expectativa. Um vídeo curto mostrando algumas mecânicas pode ser uma boa ideia!
-Designer: Boa ideia! Posso ajudar com a criação de elementos visuais para o teaser, como transições e animações que destacam os pontos
-Gerente de Produto: Excelente colaboração, pessoal! Vamos definir um cronograma para garantir que todas essas iniciativas sejam concluídas a tempo. Depois de termos
-Desenvolvedor: Concordo! Vou traçar um cronograma para as entregas relacionadas ao desenvolvimento e também preparar uma versão estável do código para
-Tester: Perfeito! Enquanto isso, posso começar a preparar os testes automatizados para as mecânicas do jogo e criar um checklist para garantir que
-Marketing: E eu vou compor um cronograma de comunicação para o teaser e o lançamento. É importante que criemos uma narrativa coesa que atra
+Olá! Fico feliz em ajudar você a criar um jogo de cobrinha em Go (Golang). Podemos discutir os detalhes do projeto, como os recursos que você gostaria de incluir, a interface do usuário e como você gostaria de gerenciar a lógica do jogo.
+
+Aqui estão algumas perguntas para começarmos:
+
+1. **Interface do Usuário**: Você tem em mente uma interface de linha de comando ou prefere uma interface gráfica? Para uma interface gráfica, precisaremos de uma biblioteca como `raylib
+ou `SDL`. Qual você prefere?
+
+2. **Plataforma**: O jogo será para desktop, ou você está pensando em alguma outra plataforma como web ou mobile?
+
+3. **Recursos do Jogo**: Além da lógica básica da cobrinha, você gostaria de incluir recursos adicionais, como diferentes níveis de dificuldade, power-ups, ou elementos visuais adicionais?
+
+4. **Controles**: Quais controles você acha que seriam ideais para o jogo? As setas do teclado
+ou você prefere usar as teclas WASD?
+
+5. **Desempenho e Escalabilidade**: Você tem alguma preocupação com o desempenho ou recursos que gostaria de utilizar para otimizar a experiência do jogador?
+
+6. **Objetivos e Metas**: Qual é o objetivo principal do jogo? É apenas sobreviver o máximo possível, ou você gostaria de adicionar objetivos ou desafios que os jogadores precisariam completar?
+
+Essas perguntas podem nos ajudar a definir melhor o escopo do projeto e
+a criar um plano mais estruturado para o desenvolvimento do jogo. Fique à vontade para compartilhar suas ideias ou quaisquer outros pontos que você considere importantes!
+1. **Interface do Usuário**: Para um projeto inicial de um jogo de cobrinha, podemos começar com uma interface de linha de comando usando a biblioteca `crossterm` para manipulação do console. Se o tempo permitir e o projeto evoluir, podemos considerar uma interface gráfica.
+
+2. **Plataforma**: O jogo será direcionado para desktop, permitindo uma ampla compatibilidade com sistemas operacionais como Windows, macOS e Linux.
+
+3. **Recursos do J
+ogo**: Inicialmente, o jogo terá as seguintes funcionalidades:
+   - Mecânica básica da cobrinha (crescimento ao comer alimentos)
+   - Game over quando colidir com as paredes ou consigo mesma
+   - Contagem de pontos baseada na quantidade de alimentos consumidos
+   - Um nível de dificuldade padrão, que pode ser ajustado posteriormente
+
+4. **Controles**: Vamos utilizar as setas do teclado para controlar a direção da cobrinha. Isso é familiar para a maioria dos
+jogadores e facilitará a experiência. Podemos implementar uma maneira de pausar o jogo com a tecla "P" e reiniciá-lo com "R".
+
+5. **Desempenho e Escalabilidade**: Como o jogo é simples, não devemos enfrentar muitos problemas de desempenho. Podemos manter o jogo fluido controlando a taxa de quadros (FPS) e fazendo otimizações conforme necessário.
+
+6. **Objetivos e Metas**: O objetivo principal será sobreviver o
