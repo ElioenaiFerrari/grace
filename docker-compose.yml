@@ -1,0 +1,14 @@
+services:
+  api:
+    build: .
+    ports:
+      - "4000:4000"
+
+  nginx:
+    image: nginx:1.27
+    ports:
+      - "80:80"
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html
+    depends_on:
+      - api
