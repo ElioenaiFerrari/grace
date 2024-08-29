@@ -56,6 +56,46 @@
         background-color: #e0f7fa;
       }
 
+      .typing-feedback {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 24px;
+        width: 60px;
+      }
+
+      .typing-dot {
+        width: 8px;
+        height: 8px;
+        margin: 0 2px;
+        background-color: #999;
+        border-radius: 50%;
+        animation: bounce 1s infinite;
+      }
+
+      .typing-dot:nth-child(1) {
+        animation-delay: 0s;
+      }
+
+      .typing-dot:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+
+      .typing-dot:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+
+      @keyframes bounce {
+        0%,
+        60%,
+        100% {
+          transform: translateY(0);
+        }
+        30% {
+          transform: translateY(-8px);
+        }
+      }
+
       .chat-input {
         display: flex;
         align-items: center;
@@ -104,6 +144,10 @@
       const ws = new WebSocket('ws://localhost:4000/ws');
 
       ws.onmessage = function (event) {
+        const typingFeedback = document.getElementById('typingFeedback');
+        if (typingFeedback) {
+          typingFeedback.remove();
+        }
         const message = JSON.parse(event.data);
         addMessageToChat(message.role, message.content);
       };
@@ -118,6 +162,20 @@
         chatBox.scrollTop = chatBox.scrollHeight; // Scroll para o final
       }
 
+      function showTypingFeedback() {
+        const chatBox = document.getElementById('chatBox');
+        const typingDiv = document.createElement('div');
+        typingDiv.classList.add('chat-message', 'assistant', 'typing-feedback');
+        typingDiv.id = 'typingFeedback';
+        typingDiv.innerHTML = `
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+        `;
+        chatBox.appendChild(typingDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
       function sendMessage() {
         const input = document.getElementById('messageInput');
         const message = input.value.trim();
@@ -129,6 +187,7 @@
           ws.send(JSON.stringify(userMessage));
           addMessageToChat('user', message);
           input.value = '';
+          showTypingFeedback();
         }
       }
     </script>
