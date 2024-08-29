@@ -101,7 +101,7 @@
     <!-- Materialize JS (com dependências) -->
     <script src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@1.0.0/js/materialize.min.js"></script>
     <script>
-      const ws = new WebSocket('ws://localhost:4000');
+      const ws = new WebSocket('ws://localhost:4000/ws');
 
       ws.onmessage = function (event) {
         const message = JSON.parse(event.data);
