@@ -96,6 +96,12 @@ async fn main() -> std::io::Result<()> {
             .app_data(Data::new(AppState {
                 openai_client: OpenAIClient::new(env::var("OPENAI_API_KEY").unwrap().to_string()),
             }))
+            .wrap(
+                actix_cors::Cors::default()
+                    .allow_any_header()
+                    .allow_any_method()
+                    .allow_any_origin(),
+            )
             .route("/ws", web::get().to(chat))
     })
     .bind(("0.0.0.0", 4000))?

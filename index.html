@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat com WebSocket</title>
+    <!-- Fonte Poppins via CDN -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Material Design CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/@materializecss/materialize@1.0.0/css/materialize.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: 'Poppins', sans-serif;
+        background-color: #f5f5f5;
+      }
+
+      .chat-container {
+        width: 100%;
+        max-width: 600px;
+        margin: 50px auto;
+        padding: 20px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .chat-box {
+        height: 400px;
+        overflow-y: auto;
+        margin-bottom: 20px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+      }
+
+      .chat-message {
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 8px;
+        max-width: 80%;
+      }
+
+      .chat-message.user {
+        background-color: #e1f5fe;
+        margin-left: auto;
+        text-align: right;
+      }
+
+      .chat-message.assistant {
+        background-color: #e0f7fa;
+      }
+
+      .chat-input {
+        display: flex;
+        align-items: center;
+      }
+
+      .chat-input input {
+        flex: 1;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        margin-right: 10px;
+      }
+
+      .chat-input button {
+        padding: 10px 20px;
+        background-color: #26a69a;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+
+      .chat-input button:hover {
+        background-color: #00796b;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="chat-container">
+      <div class="chat-box" id="chatBox">
+        <!-- Mensagens aparecerão aqui -->
+      </div>
+      <div class="chat-input">
+        <input
+          type="text"
+          id="messageInput"
+          placeholder="Digite sua mensagem..."
+        />
+        <button onclick="sendMessage()">Enviar</button>
+      </div>
+    </div>
+
+    <!-- Materialize JS (com dependências) -->
+    <script src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@1.0.0/js/materialize.min.js"></script>
+    <script>
+      const ws = new WebSocket('ws://localhost:4000');
+
+      ws.onmessage = function (event) {
+        const message = JSON.parse(event.data);
+        addMessageToChat(message.role, message.content);
+      };
+
+      function addMessageToChat(role, content) {
+        const chatBox = document.getElementById('chatBox');
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('chat-message');
+        messageDiv.classList.add(role);
+        messageDiv.textContent = content;
+        chatBox.appendChild(messageDiv);
+        chatBox.scrollTop = chatBox.scrollHeight; // Scroll para o final
+      }
+
+      function sendMessage() {
+        const input = document.getElementById('messageInput');
+        const message = input.value.trim();
+        if (message) {
+          const userMessage = {
+            role: 'user',
+            content: message,
+          };
+          ws.send(JSON.stringify(userMessage));
+          addMessageToChat('user', message);
+          input.value = '';
+        }
+      }
+    </script>
+  </body>
+</html>
