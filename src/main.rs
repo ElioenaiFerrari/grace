@@ -1,8 +1,8 @@
-use std::{env, fs::File, io::BufReader};
+use std::{borrow::Borrow, env};
 
 use actix_web::{
     rt,
-    web::{self, Data},
+    web::{self, Data, Query},
     App, Error, HttpRequest, HttpResponse, HttpServer,
 };
 use actix_ws::AggregatedMessage;
@@ -10,14 +10,22 @@ use dotenv::dotenv;
 use futures_util::StreamExt as _;
 use openai_api_rs::v1::{
     api::OpenAIClient,
-    chat_completion::{self, ChatCompletionMessage, ChatCompletionRequest, Content, MessageRole},
+    chat_completion::{ChatCompletionMessage, ChatCompletionRequest, Content, MessageRole},
     common::GPT4_O_MINI,
 };
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct Learn {
+    learn_language: String,
+    native_language: String,
+}
 
 async fn chat(
     req: HttpRequest,
     stream: web::Payload,
     state: Data<AppState>,
+    query: Query<Learn>,
 ) -> Result<HttpResponse, Error> {
     let (res, mut session, stream) = actix_ws::handle(&req, stream)?;
 
@@ -26,7 +34,18 @@ async fn chat(
         .max_continuation_size(2_usize.pow(20));
 
     rt::spawn(async move {
-        let mut messages: Vec<ChatCompletionMessage> = vec![];
+        let mut messages: Vec<ChatCompletionMessage> = vec![ChatCompletionMessage {
+            role: MessageRole::system,
+            content: Content::Text(format!(
+                "Eu sou um assistente de linguagem. Estou aqui para te ajudar a aprender {}. As correções ocorrerão em tempo real na sua língua nativa: {}. Por favor fale sobre o que vamos conversar.",
+                // get from query params
+                query.learn_language,
+                query.native_language
+            )),
+            name: None,
+            tool_call_id: None,
+            tool_calls: None,
+        }];
         while let Some(msg) = stream.next().await {
             match msg {
                 Ok(AggregatedMessage::Text(text)) => {
@@ -53,11 +72,6 @@ async fn chat(
                 Ok(AggregatedMessage::Binary(bin)) => {
                     // echo binary message
                     session.binary(bin).await.unwrap();
-                }
-
-                Ok(AggregatedMessage::Ping(msg)) => {
-                    // respond to PING frame with PONG frame
-                    session.pong(&msg).await.unwrap();
                 }
 
                 _ => {}
@@ -102,6 +116,7 @@ async fn main() -> std::io::Result<()> {
                     .allow_any_method()
                     .allow_any_origin(),
             )
+            // in /ws/<native_language>/learn_language
             .route("/ws", web::get().to(chat))
     })
     .bind(("0.0.0.0", 4000))?

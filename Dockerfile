@@ -1,6 +1,8 @@
-FROM rust:1.80-alpine as builder
+FROM rust:1.80-slim as builder
 
 WORKDIR /usr/src/app
+
+RUN apt-get update && apt-get install -y musl-tools openssl libssl-dev pkg-config && rm -rf /var/lib/apt/lists/*
 
 COPY . .
 

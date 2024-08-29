@@ -15,8 +15,14 @@
       rel="stylesheet"
     />
     <style>
-      body {
+      *,
+      html {
         font-family: 'Poppins', sans-serif;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
         background-color: #f5f5f5;
       }
 
@@ -121,10 +127,40 @@
       .chat-input button:hover {
         background-color: #00796b;
       }
+
+      .lang-select {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+
+      .lang-select select {
+        flex: 1;
+        margin: 0 10px;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+      }
     </style>
   </head>
   <body>
     <div class="chat-container">
+      <div class="lang-select">
+        <select id="nativeLanguage">
+          <option value="">Selecione a Linguagem Nativa</option>
+          <option value="pt-br">Português (Brasil)</option>
+          <option value="en-us">Inglês</option>
+          <option value="it-it">Italiano</option>
+          <option value="es-es">Espanhol</option>
+        </select>
+        <select id="learnLanguage">
+          <option value="">Selecione a Linguagem para Aprender</option>
+          <option value="pt-br">Português (Brasil)</option>
+          <option value="en-us">Inglês</option>
+          <option value="it-it">Italiano</option>
+          <option value="es-es">Espanhol</option>
+        </select>
+      </div>
       <div class="chat-box" id="chatBox">
         <!-- Mensagens aparecerão aqui -->
       </div>
@@ -134,23 +170,37 @@
           id="messageInput"
           placeholder="Digite sua mensagem..."
         />
-        <button onclick="sendMessage()">Enviar</button>
+        <button>Enviar</button>
       </div>
     </div>
 
     <!-- Materialize JS (com dependências) -->
     <script src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@1.0.0/js/materialize.min.js"></script>
     <script>
-      const ws = new WebSocket('ws://localhost:4000/ws');
+      let ws;
+      let nativeLanguage = '';
+      let learnLanguage = '';
 
-      ws.onmessage = function (event) {
-        const typingFeedback = document.getElementById('typingFeedback');
-        if (typingFeedback) {
-          typingFeedback.remove();
+      function connectWebSocket() {
+        if (nativeLanguage && learnLanguage) {
+          ws = new WebSocket(
+            `ws://localhost:4000/ws?native_language=${nativeLanguage}&learn_language=${learnLanguage}`
+          );
+
+          ws.onmessage = function (event) {
+            const typingFeedback = document.getElementById('typingFeedback');
+            if (typingFeedback) {
+              typingFeedback.remove();
+            }
+            const message = JSON.parse(event.data);
+            addMessageToChat(message.role, message.content);
+          };
+
+          ws.onopen = function () {
+            sendInitialMessage();
+          };
         }
-        const message = JSON.parse(event.data);
-        addMessageToChat(message.role, message.content);
-      };
+      }
 
       function addMessageToChat(role, content) {
         const chatBox = document.getElementById('chatBox');
@@ -176,6 +226,17 @@
         chatBox.scrollTop = chatBox.scrollHeight;
       }
 
+      function sendInitialMessage() {
+        const initialMessage = {
+          role: 'user',
+          content:
+            'Oi, vamos começar a aula? Lembre de conversar na linguagem que desejo aprender e corrigir na minha linguagem nativa.',
+        };
+        ws.send(JSON.stringify(initialMessage));
+        addMessageToChat(initialMessage.role, initialMessage.content);
+        showTypingFeedback();
+      }
+
       function sendMessage() {
         const input = document.getElementById('messageInput');
         const message = input.value.trim();
@@ -190,6 +251,29 @@
           showTypingFeedback();
         }
       }
+
+      function updateLanguages() {
+        nativeLanguage = document.getElementById('nativeLanguage').value;
+        learnLanguage = document.getElementById('learnLanguage').value;
+        connectWebSocket();
+      }
+
+      document
+        .getElementById('nativeLanguage')
+        .addEventListener('change', updateLanguages);
+      document
+        .getElementById('learnLanguage')
+        .addEventListener('change', updateLanguages);
+
+      const input = document.getElementById('messageInput');
+      const btn = document.querySelector('button');
+      btn.addEventListener('click', sendMessage);
+      // add Enter support
+      input.addEventListener('keyup', function (event) {
+        if (event.key === 'Enter') {
+          sendMessage();
+        }
+      });
     </script>
   </body>
 </html>
