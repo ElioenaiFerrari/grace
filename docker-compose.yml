@@ -1,0 +1,27 @@
+services:
+# redis
+  redis:
+    image: redis:7.4.1-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - grace
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: grace
+      POSTGRES_PASSWORD: grace
+      POSTGRES_DB: grace
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    networks:
+      - grace
+
+networks:
+  grace:
+    driver: bridge
