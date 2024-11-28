@@ -1,7 +1,6 @@
 use anyhow;
 use dotenv::dotenv;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use teloxide::{
     dispatching::{dialogue::serializer::Json, dialogue::RedisStorage, HandlerExt},
     prelude::*,
@@ -18,10 +17,10 @@ pub struct State {
 pub enum StateMachine {
     #[default]
     Authentication,
-    ReceiveCode,
-    Onboarding,
-    SendLocation,
-    Chat,
+    ReceiveCode(account::Account),
+    Onboarding(account::Account),
+    SendLocation(account::Account),
+    Chat(account::Account),
 }
 
 // #[derive(BotCommands, Clone)]
@@ -67,11 +66,11 @@ async fn authentication(bot: Bot, dialogue: Dialogue, msg: Message) -> HandlerRe
     if let Some(account) = account {
         if account.verified {
             if account.did_onboarding {
-                dialogue.update(StateMachine::Chat).await?;
+                dialogue.update(StateMachine::Chat(account)).await?;
                 return Ok(());
             }
 
-            dialogue.update(StateMachine::Onboarding).await?;
+            dialogue.update(StateMachine::Onboarding(account)).await?;
             return Ok(());
         }
     }
@@ -103,7 +102,38 @@ async fn authentication(bot: Bot, dialogue: Dialogue, msg: Message) -> HandlerRe
     );
 
     bot.send_message(msg.chat.id, message).await?;
-    dialogue.update(StateMachine::ReceiveCode).await?;
+    dialogue.update(StateMachine::ReceiveCode(account)).await?;
+
+    Ok(())
+}
+
+async fn receive_code(
+    bot: Bot,
+    dialogue: Dialogue,
+    mut account: account::Account,
+    msg: Message,
+) -> HandlerResult {
+    let chat_id = msg.chat.id;
+
+    match msg.text() {
+        Some(code) => {
+            if code == "1234" {
+                let pool = establish_connection()
+                    .await
+                    .expect("Failed to connect to database");
+
+                account.verified = true;
+                account.update(&pool).await?;
+                dialogue.update(StateMachine::Onboarding(account)).await?;
+            } else {
+                bot.send_message(chat_id, "Código incorreto!").await?;
+            }
+        }
+        None => {
+            bot.send_message(chat_id, "Por favor, digite o código que você recebeu.")
+                .await?;
+        }
+    }
 
     Ok(())
 }
@@ -127,7 +157,8 @@ async fn main() -> std::io::Result<()> {
         bot,
         Update::filter_message()
             .enter_dialogue::<Message, Storage, StateMachine>()
-            .branch(dptree::case![StateMachine::Authentication].endpoint(authentication)),
+            .branch(dptree::case![StateMachine::Authentication].endpoint(authentication))
+            .branch(dptree::case![StateMachine::ReceiveCode(account)].endpoint(receive_code)),
     )
     .dependencies(dptree::deps![RedisStorage::open(
         "redis://127.0.0.1/",
