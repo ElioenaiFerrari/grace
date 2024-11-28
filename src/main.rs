@@ -6,49 +6,52 @@ use teloxide::{
     prelude::*,
     utils::command::BotCommands,
 };
+mod account;
 
 #[derive(Debug, Clone)]
 pub struct State {
     bot: Bot,
 }
 
-#[derive(Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub enum StateMachine {
     #[default]
     Authentication,
+    ReceiveCode,
     Onboarding,
+    SendLocation,
     Chat,
 }
 
-#[derive(BotCommands, Clone)]
-#[command(
-    rename_rule = "lowercase",
-    description = "These commands are supported:"
-)]
-enum Command {
-    #[command(description = "display this text.")]
-    Help,
-}
+// #[derive(BotCommands, Clone)]
+// #[command(
+//     rename_rule = "lowercase",
+//     description = "These commands are supported:"
+// )]
+// enum Command {
+//     #[command(description = "display this text.")]
+//     Help,
+// }
 
-async fn answer(bot: Bot, msg: Message, cmd: Command) -> ResponseResult<()> {
-    match cmd {
-        Command::Help => {
-            bot.send_message(msg.chat.id, Command::descriptions().to_string())
-                .await?
-        }
-    };
+// async fn answer(bot: Bot, msg: Message, cmd: Command) -> ResponseResult<()> {
+//     match cmd {
+//         Command::Help => {
+//             bot.send_message(msg.chat.id, Command::descriptions().to_string())
+//                 .await?
+//         }
+//     };
 
-    Ok(())
-}
+//     Ok(())
+// }
 
 type Storage = RedisStorage<Json>;
 type Dialogue = teloxide::dispatching::dialogue::Dialogue<StateMachine, Storage>;
 type HandlerResult = Result<(), anyhow::Error>;
 
 async fn authentication(bot: Bot, dialogue: Dialogue, msg: Message) -> HandlerResult {
-    bot.send_message(msg.chat.id, "Let's start! What's your full name?")
+    bot.send_message(msg.chat.id, "Digite o código fornecido")
         .await?;
-    dialogue.update(StateMachine::Onboarding).await?;
+
     Ok(())
 }
 

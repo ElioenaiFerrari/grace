@@ -18,7 +18,7 @@ services:
       POSTGRES_PASSWORD: grace
       POSTGRES_DB: grace
     volumes:
-      - ./data/postgres:/var/lib/postgresql/data
+      - ./data/postgres:/var/lib/postgresql/data:rw
     networks:
       - grace
 
