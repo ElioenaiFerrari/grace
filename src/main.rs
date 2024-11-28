@@ -19,7 +19,7 @@ pub enum StateMachine {
     Authentication,
     ReceiveCode(account::Account),
     Onboarding(account::Account),
-    SendLocation(account::Account),
+    ReceiveLocation(account::Account),
     Chat(account::Account),
 }
 
@@ -138,6 +138,55 @@ async fn receive_code(
     Ok(())
 }
 
+async fn onboarding(
+    bot: Bot,
+    dialogue: Dialogue,
+    mut account: account::Account,
+    msg: Message,
+) -> HandlerResult {
+    let chat_id = msg.chat.id;
+
+    let message = format!(
+        r#"
+        Olá, {}! Seja bem-vindo ao nosso bot. Para continuar, precisamos de sua localização.
+    "#,
+        account.first_name
+    );
+
+    bot.send_message(chat_id, message).await?;
+
+    Ok(())
+}
+
+async fn receive_location(
+    bot: Bot,
+    dialogue: Dialogue,
+    mut account: account::Account,
+    msg: Message,
+) -> HandlerResult {
+    let chat_id = msg.chat.id;
+
+    match msg.location() {
+        Some(location) => {
+            let pool = establish_connection()
+                .await
+                .expect("Failed to connect to database");
+
+            log::info!("Location: {:#?}", location);
+
+            account.did_onboarding = true;
+            account.update(&pool).await?;
+            dialogue.update(StateMachine::Chat(account)).await?;
+        }
+        None => {
+            bot.send_message(chat_id, "Por favor, compartilhe sua localização.")
+                .await?;
+        }
+    }
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
@@ -158,7 +207,9 @@ async fn main() -> std::io::Result<()> {
         Update::filter_message()
             .enter_dialogue::<Message, Storage, StateMachine>()
             .branch(dptree::case![StateMachine::Authentication].endpoint(authentication))
-            .branch(dptree::case![StateMachine::ReceiveCode(account)].endpoint(receive_code)),
+            .branch(dptree::case![StateMachine::ReceiveCode(account)].endpoint(receive_code))
+            .branch(dptree::case![StateMachine::Onboarding(account)].endpoint(onboarding))
+            .branch(dptree::case![StateMachine::ReceiveCode(account)].endpoint(onboarding)),
     )
     .dependencies(dptree::deps![RedisStorage::open(
         "redis://127.0.0.1/",
