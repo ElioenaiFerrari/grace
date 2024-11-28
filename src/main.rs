@@ -1,6 +1,7 @@
 use anyhow;
 use dotenv::dotenv;
 use serde::{Deserialize, Serialize};
+use sqlx::PgPool;
 use teloxide::{
     dispatching::{dialogue::serializer::Json, dialogue::RedisStorage, HandlerExt},
     prelude::*,
@@ -44,13 +45,65 @@ pub enum StateMachine {
 //     Ok(())
 // }
 
+async fn establish_connection() -> Result<sqlx::PgPool, sqlx::Error> {
+    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let pool = sqlx::PgPool::connect(&database_url).await?;
+
+    Ok(pool)
+}
+
 type Storage = RedisStorage<Json>;
 type Dialogue = teloxide::dispatching::dialogue::Dialogue<StateMachine, Storage>;
 type HandlerResult = Result<(), anyhow::Error>;
 
 async fn authentication(bot: Bot, dialogue: Dialogue, msg: Message) -> HandlerResult {
-    bot.send_message(msg.chat.id, "Digite o código fornecido")
-        .await?;
+    let pool = establish_connection()
+        .await
+        .expect("Failed to connect to database");
+
+    let chat_id = msg.chat.id.0;
+    let account = account::Account::find_by_chat_id(&chat_id, &pool).await?;
+
+    if let Some(account) = account {
+        if account.verified {
+            if account.did_onboarding {
+                dialogue.update(StateMachine::Chat).await?;
+                return Ok(());
+            }
+
+            dialogue.update(StateMachine::Onboarding).await?;
+            return Ok(());
+        }
+    }
+
+    let first_name = if let Some(first_name) = msg.chat.first_name() {
+        first_name.to_string()
+    } else {
+        "".to_string()
+    };
+
+    let last_name = if let Some(last_name) = msg.chat.last_name() {
+        last_name.to_string()
+    } else {
+        "".to_string()
+    };
+
+    let account = account::Account {
+        chat_id: chat_id,
+        first_name: first_name,
+        last_name: last_name,
+        ..Default::default()
+    };
+
+    account.create(&pool).await?;
+
+    let message = format!(
+        "Olá, {}! Para continuar, precisamos verificar sua identidade. Por favor, digite o código que você recebeu.",
+        account.first_name
+    );
+
+    bot.send_message(msg.chat.id, message).await?;
+    dialogue.update(StateMachine::ReceiveCode).await?;
 
     Ok(())
 }
@@ -66,6 +119,9 @@ async fn main() -> std::io::Result<()> {
     };
 
     let bot = state.bot.clone();
+    let pool = establish_connection()
+        .await
+        .expect("Failed to connect to database");
 
     Dispatcher::builder(
         bot,
