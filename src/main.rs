@@ -1,9 +1,3 @@
-use actix_web::{
-    get, rt,
-    web::{self, Data},
-    App, Error, HttpRequest, HttpResponse, HttpServer,
-};
-use actix_ws::AggregatedMessage;
 use anyhow;
 use dotenv::dotenv;
 use serde::{Deserialize, Serialize};
@@ -12,7 +6,6 @@ use teloxide::{
     prelude::*,
     utils::command::BotCommands,
 };
-use tokio_stream::StreamExt;
 
 #[derive(Debug, Clone)]
 pub struct State {
@@ -48,50 +41,6 @@ async fn answer(bot: Bot, msg: Message, cmd: Command) -> ResponseResult<()> {
     Ok(())
 }
 
-#[get("/ws")]
-async fn websocket(
-    req: HttpRequest,
-    stream: web::Payload,
-    state: Data<State>,
-) -> Result<HttpResponse, Error> {
-    let (res, mut session, stream) = actix_ws::handle(&req, stream)?;
-
-    let mut stream = stream
-        .aggregate_continuations()
-        // aggregate continuation frames up to 1MiB
-        .max_continuation_size(2_usize.pow(20));
-
-    // start task but don't wait for it
-    rt::spawn(async move {
-        // receive messages from websocket
-        while let Some(msg) = stream.next().await {
-            match msg {
-                Ok(AggregatedMessage::Text(text)) => {
-                    // echo text message
-                    let bot = state.bot.clone();
-
-                    session.text(text).await.unwrap();
-                }
-
-                Ok(AggregatedMessage::Binary(bin)) => {
-                    // echo binary message
-                    session.binary(bin).await.unwrap();
-                }
-
-                Ok(AggregatedMessage::Ping(msg)) => {
-                    // respond to PING frame with PONG frame
-                    session.pong(&msg).await.unwrap();
-                }
-
-                _ => {}
-            }
-        }
-    });
-
-    // respond immediately with response connected to WS session
-    Ok(res)
-}
-
 type Storage = RedisStorage<Json>;
 type Dialogue = teloxide::dispatching::dialogue::Dialogue<StateMachine, Storage>;
 type HandlerResult = Result<(), anyhow::Error>;
@@ -103,7 +52,7 @@ async fn authentication(bot: Bot, dialogue: Dialogue, msg: Message) -> HandlerRe
     Ok(())
 }
 
-#[actix_web::main]
+#[tokio::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
 
@@ -132,12 +81,5 @@ async fn main() -> std::io::Result<()> {
     .dispatch()
     .await;
 
-    HttpServer::new(move || {
-        App::new()
-            .app_data(Data::new(state.clone()))
-            .service(websocket)
-    })
-    .bind(("0.0.0.0", 4000))?
-    .run()
-    .await
+    Ok(())
 }
