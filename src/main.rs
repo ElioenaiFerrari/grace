@@ -72,7 +72,7 @@ async fn authentication(bot: Bot, dialogue: Dialogue, msg: Message) -> HandlerRe
                 return Ok(());
             }
 
-            dialogue.update(StateMachine::Onboarding(account)).await?;
+            dialogue.update(StateMachine::ReceiveCode(account)).await?;
             return Ok(());
         }
     }
@@ -127,10 +127,16 @@ async fn receive_code(
                 account.verified = true;
                 account.update(&pool).await?;
 
-                bot.send_message(chat_id, "Olá! Como posso te ajudar?")
-                    .await?;
+                let message = format!(
+                    r#"
+                    Olá, {}! Seja bem-vindo ao nosso bot. Para continuar, precisamos de sua localização.
+                "#,
+                    account.first_name
+                );
 
-                dialogue.update(StateMachine::Onboarding(account)).await?;
+                bot.send_message(chat_id, message).await?;
+
+                dialogue.update(StateMachine::Chat(account)).await?;
             } else {
                 bot.send_message(chat_id, "Código incorreto!").await?;
             }
@@ -144,28 +150,20 @@ async fn receive_code(
     Ok(())
 }
 
-async fn onboarding(
-    bot: Bot,
-    dialogue: Dialogue,
-    mut account: account::Account,
-    msg: Message,
-) -> HandlerResult {
-    let chat_id = msg.chat.id;
+// async fn onboarding(
+//     bot: Bot,
+//     dialogue: Dialogue,
+//     mut account: account::Account,
+//     msg: Message,
+// ) -> HandlerResult {
+//     let chat_id = msg.chat.id;
 
-    let message = format!(
-        r#"
-        Olá, {}! Seja bem-vindo ao nosso bot. Para continuar, precisamos de sua localização.
-    "#,
-        account.first_name
-    );
+//     dialogue
+//         .update(StateMachine::ReceiveLocation(account))
+//         .await?;
 
-    bot.send_message(chat_id, message).await?;
-    dialogue
-        .update(StateMachine::ReceiveLocation(account))
-        .await?;
-
-    Ok(())
-}
+//     Ok(())
+// }
 
 async fn receive_location(
     bot: Bot,
@@ -285,8 +283,6 @@ async fn main() -> std::io::Result<()> {
             .enter_dialogue::<Message, Storage, StateMachine>()
             .branch(dptree::case![StateMachine::Authentication].endpoint(authentication))
             .branch(dptree::case![StateMachine::ReceiveCode(account)].endpoint(receive_code))
-            .branch(dptree::case![StateMachine::Onboarding(account)].endpoint(onboarding))
-            .branch(dptree::case![StateMachine::ReceiveCode(account)].endpoint(onboarding))
             .branch(
                 dptree::case![StateMachine::ReceiveLocation(account)].endpoint(receive_location),
             )
