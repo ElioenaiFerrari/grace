@@ -59,7 +59,7 @@ pub struct Message {
     pub chat_id: i64,
     pub content: String,
     pub role: Role,
-    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub created_at: chrono::NaiveDateTime,
 }
 
 impl Default for Message {
@@ -71,7 +71,7 @@ impl Default for Message {
             chat_id: 0,
             content: "".to_string(),
             role: Role::User,
-            created_at: chrono::Utc::now(),
+            created_at: chrono::Utc::now().naive_utc(),
         }
     }
 }
