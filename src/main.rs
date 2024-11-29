@@ -194,12 +194,7 @@ async fn receive_location(
     Ok(())
 }
 
-async fn chat(
-    bot: Bot,
-    dialogue: Dialogue,
-    account: account::Account,
-    msg: Message,
-) -> HandlerResult {
+async fn chat(bot: Bot, msg: Message) -> HandlerResult {
     let agent = agent::Agent::default();
     let chat_id = msg.chat.id;
 
@@ -216,7 +211,8 @@ async fn chat(
             };
             user_message.create(&pool).await?;
 
-            let messages = message::Message::list_by_chat_id(chat_id.0, 10, &pool).await?;
+            let mut messages = message::Message::list_last_by_chat_id(chat_id.0, 10, &pool).await?;
+            messages.reverse();
 
             let messages: Vec<genai::chat::ChatMessage> = messages
                 .iter()

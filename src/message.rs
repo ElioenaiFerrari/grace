@@ -96,7 +96,7 @@ impl Message {
         Ok(())
     }
 
-    pub async fn list_by_chat_id(
+    pub async fn list_last_by_chat_id(
         chat_id: i64,
         size: i32,
         pool: &PgPool,
