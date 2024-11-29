@@ -7,6 +7,7 @@ use teloxide::{
     utils::command::BotCommands,
 };
 mod account;
+mod agent;
 
 #[derive(Debug, Clone)]
 pub struct State {
@@ -154,6 +155,9 @@ async fn onboarding(
     );
 
     bot.send_message(chat_id, message).await?;
+    dialogue
+        .update(StateMachine::ReceiveLocation(account))
+        .await?;
 
     Ok(())
 }
@@ -187,6 +191,42 @@ async fn receive_location(
     Ok(())
 }
 
+async fn chat(
+    bot: Bot,
+    dialogue: Dialogue,
+    account: account::Account,
+    msg: Message,
+) -> HandlerResult {
+    let agent = agent::Agent::default();
+    let chat_id = msg.chat.id;
+
+    match msg.text() {
+        Some(text) => {
+            let messages = vec![genai::chat::ChatMessage {
+                content: genai::chat::MessageContent::Text(text.to_string()),
+                role: genai::chat::ChatRole::User,
+            }];
+
+            let response = agent.send(messages).await?;
+            match response.content.expect("Failed to get response") {
+                genai::chat::MessageContent::Text(text) => {
+                    bot.send_message(chat_id, text).await?;
+                }
+                _ => {
+                    bot.send_message(chat_id, "Desculpe, não entendi.").await?;
+                    return Ok(());
+                }
+            }
+        }
+        None => {
+            bot.send_message(chat_id, "Por favor, digite uma mensagem.")
+                .await?;
+        }
+    }
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
@@ -209,7 +249,11 @@ async fn main() -> std::io::Result<()> {
             .branch(dptree::case![StateMachine::Authentication].endpoint(authentication))
             .branch(dptree::case![StateMachine::ReceiveCode(account)].endpoint(receive_code))
             .branch(dptree::case![StateMachine::Onboarding(account)].endpoint(onboarding))
-            .branch(dptree::case![StateMachine::ReceiveCode(account)].endpoint(onboarding)),
+            .branch(dptree::case![StateMachine::ReceiveCode(account)].endpoint(onboarding))
+            .branch(
+                dptree::case![StateMachine::ReceiveLocation(account)].endpoint(receive_location),
+            )
+            .branch(dptree::case![StateMachine::Chat(account)].endpoint(chat)),
     )
     .dependencies(dptree::deps![RedisStorage::open(
         "redis://127.0.0.1/",
