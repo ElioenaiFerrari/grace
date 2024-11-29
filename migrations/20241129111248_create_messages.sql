@@ -7,5 +7,3 @@ CREATE TABLE IF NOT EXISTS messages (
   role role NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-
-CREATE UNIQUE INDEX IF NOT EXISTS idx_messages_chat_id ON messages(chat_id);
