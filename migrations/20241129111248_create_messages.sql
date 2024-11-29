@@ -8,3 +8,5 @@ CREATE TABLE IF NOT EXISTS messages (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (account_id) REFERENCES accounts(id)
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_messages_chat_id ON messages(chat_id);

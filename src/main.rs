@@ -8,6 +8,7 @@ use teloxide::{
 };
 mod account;
 mod agent;
+mod message;
 
 #[derive(Debug, Clone)]
 pub struct State {
@@ -202,6 +203,16 @@ async fn chat(
 
     match msg.text() {
         Some(text) => {
+            let pool = establish_connection()
+                .await
+                .expect("Failed to connect to database");
+
+            let user_message = message::Message {
+                content: text.to_string(),
+                ..Default::default()
+            };
+            user_message.create(&pool).await?;
+
             let messages = vec![genai::chat::ChatMessage {
                 content: genai::chat::MessageContent::Text(text.to_string()),
                 role: genai::chat::ChatRole::User,
