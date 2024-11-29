@@ -1,7 +1,6 @@
 -- Add migration script here
 CREATE TABLE IF NOT EXISTS messages (
   id TEXT PRIMARY KEY,
-  account_id TEXT NOT NULL,
   chat_id BIGINT NOT NULL,
   content TEXT NOT NULL,
   role VARCHAR NOT NULL,

@@ -9,8 +9,6 @@ pub enum Role {
     User,
     #[serde(rename = "assistant")]
     Assistant,
-    #[serde(rename = "system")]
-    System,
 }
 
 impl Type<Postgres> for Role {
@@ -31,7 +29,6 @@ where
         let value = match self {
             Role::User => "user",
             Role::Assistant => "assistant",
-            Role::System => "system",
         };
 
         value.encode_by_ref(buf)
@@ -51,7 +48,6 @@ where
         match value.as_str() {
             "user" => Ok(Role::User),
             "assistant" => Ok(Role::Assistant),
-            "system" => Ok(Role::System),
             _ => Err("Unknown role".into()),
         }
     }
@@ -100,7 +96,7 @@ impl Message {
         Ok(())
     }
 
-    pub async fn find_by_chat_id(
+    pub async fn list_by_chat_id(
         chat_id: i64,
         size: i32,
         pool: &PgPool,

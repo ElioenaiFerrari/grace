@@ -126,6 +126,10 @@ async fn receive_code(
 
                 account.verified = true;
                 account.update(&pool).await?;
+
+                bot.send_message(chat_id, "Olá! Como posso te ajudar?")
+                    .await?;
+
                 dialogue.update(StateMachine::Onboarding(account)).await?;
             } else {
                 bot.send_message(chat_id, "Código incorreto!").await?;
@@ -208,20 +212,42 @@ async fn chat(
                 .expect("Failed to connect to database");
 
             let user_message = message::Message {
+                chat_id: chat_id.0,
                 content: text.to_string(),
                 ..Default::default()
             };
             user_message.create(&pool).await?;
 
-            let messages = vec![genai::chat::ChatMessage {
-                content: genai::chat::MessageContent::Text(text.to_string()),
-                role: genai::chat::ChatRole::User,
-            }];
+            let messages = message::Message::list_by_chat_id(chat_id.0, 10, &pool).await?;
+
+            let messages: Vec<genai::chat::ChatMessage> = messages
+                .iter()
+                .map(|message| -> genai::chat::ChatMessage {
+                    match message.role {
+                        message::Role::User => genai::chat::ChatMessage {
+                            content: genai::chat::MessageContent::Text(message.content.to_string()),
+                            role: genai::chat::ChatRole::User,
+                        },
+                        message::Role::Assistant => genai::chat::ChatMessage {
+                            content: genai::chat::MessageContent::Text(message.content.to_string()),
+                            role: genai::chat::ChatRole::Assistant,
+                        },
+                    }
+                })
+                .collect();
 
             let response = agent.send(messages).await?;
             match response.content.expect("Failed to get response") {
                 genai::chat::MessageContent::Text(text) => {
-                    bot.send_message(chat_id, text).await?;
+                    bot.send_message(chat_id, text.clone()).await?;
+                    let assistant_message = message::Message {
+                        chat_id: chat_id.0,
+                        content: text,
+                        role: message::Role::Assistant,
+                        ..Default::default()
+                    };
+
+                    assistant_message.create(&pool).await?;
                 }
                 _ => {
                     bot.send_message(chat_id, "Desculpe, não entendi.").await?;
