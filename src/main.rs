@@ -1,10 +1,10 @@
 use anyhow;
 use dotenv::dotenv;
 use serde::{Deserialize, Serialize};
+use sqlx::PgPool;
 use teloxide::{
     dispatching::{dialogue::serializer::Json, dialogue::RedisStorage, HandlerExt},
     prelude::*,
-    utils::command::BotCommands,
 };
 mod account;
 mod agent;
@@ -25,26 +25,10 @@ pub enum StateMachine {
     Chat(account::Account),
 }
 
-// #[derive(BotCommands, Clone)]
-// #[command(
-//     rename_rule = "lowercase",
-//     description = "These commands are supported:"
-// )]
-// enum Command {
-//     #[command(description = "display this text.")]
-//     Help,
-// }
-
-// async fn answer(bot: Bot, msg: Message, cmd: Command) -> ResponseResult<()> {
-//     match cmd {
-//         Command::Help => {
-//             bot.send_message(msg.chat.id, Command::descriptions().to_string())
-//                 .await?
-//         }
-//     };
-
-//     Ok(())
-// }
+#[derive(Debug, Clone)]
+struct AppState {
+    pool: sqlx::PgPool,
+}
 
 async fn establish_connection() -> Result<sqlx::PgPool, sqlx::Error> {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
@@ -57,11 +41,7 @@ type Storage = RedisStorage<Json>;
 type Dialogue = teloxide::dispatching::dialogue::Dialogue<StateMachine, Storage>;
 type HandlerResult = Result<(), anyhow::Error>;
 
-async fn authentication(bot: Bot, dialogue: Dialogue, msg: Message) -> HandlerResult {
-    let pool = establish_connection()
-        .await
-        .expect("Failed to connect to database");
-
+async fn authentication(pool: PgPool, bot: Bot, dialogue: Dialogue, msg: Message) -> HandlerResult {
     let chat_id = msg.chat.id.0;
     let account = account::Account::find_by_chat_id(&chat_id, &pool).await?;
 
@@ -110,6 +90,7 @@ async fn authentication(bot: Bot, dialogue: Dialogue, msg: Message) -> HandlerRe
 }
 
 async fn receive_code(
+    pool: PgPool,
     bot: Bot,
     dialogue: Dialogue,
     mut account: account::Account,
@@ -120,10 +101,6 @@ async fn receive_code(
     match msg.text() {
         Some(code) => {
             if code == "1234" {
-                let pool = establish_connection()
-                    .await
-                    .expect("Failed to connect to database");
-
                 account.verified = true;
                 account.update(&pool).await?;
 
@@ -150,22 +127,8 @@ async fn receive_code(
     Ok(())
 }
 
-// async fn onboarding(
-//     bot: Bot,
-//     dialogue: Dialogue,
-//     mut account: account::Account,
-//     msg: Message,
-// ) -> HandlerResult {
-//     let chat_id = msg.chat.id;
-
-//     dialogue
-//         .update(StateMachine::ReceiveLocation(account))
-//         .await?;
-
-//     Ok(())
-// }
-
 async fn receive_location(
+    pool: PgPool,
     bot: Bot,
     dialogue: Dialogue,
     mut account: account::Account,
@@ -175,10 +138,6 @@ async fn receive_location(
 
     match msg.location() {
         Some(location) => {
-            let pool = establish_connection()
-                .await
-                .expect("Failed to connect to database");
-
             log::info!("Location: {:#?}", location);
 
             account.did_onboarding = true;
@@ -194,16 +153,12 @@ async fn receive_location(
     Ok(())
 }
 
-async fn chat(bot: Bot, msg: Message) -> HandlerResult {
+async fn chat(pool: PgPool, bot: Bot, msg: Message) -> HandlerResult {
     let agent = agent::Agent::default();
     let chat_id = msg.chat.id;
 
     match msg.text() {
         Some(text) => {
-            let pool = establish_connection()
-                .await
-                .expect("Failed to connect to database");
-
             let user_message = message::Message {
                 chat_id: chat_id.0,
                 content: text.to_string(),
@@ -273,6 +228,10 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Failed to connect to database");
 
+    let cache = RedisStorage::open("redis://127.0.0.1/", Json)
+        .await
+        .expect("Failed to open Redis storage");
+
     Dispatcher::builder(
         bot,
         Update::filter_message()
@@ -284,12 +243,7 @@ async fn main() -> std::io::Result<()> {
             )
             .branch(dptree::case![StateMachine::Chat(account)].endpoint(chat)),
     )
-    .dependencies(dptree::deps![RedisStorage::open(
-        "redis://127.0.0.1/",
-        Json,
-    )
-    .await
-    .expect("Failed to open Redis storage")])
+    .dependencies(dptree::deps![cache, pool])
     .enable_ctrlc_handler()
     .build()
     .dispatch()
